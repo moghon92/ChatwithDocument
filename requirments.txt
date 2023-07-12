@@ -1,0 +1,25 @@
+
+
+name: langchain
+dependencies:
+- matplotlib
+- numpy
+- scikit-learn
+- notebook
+- jupyterlab
+- scipy
+- pandas
+- nltk
+- bs4
+- pytorch
+- seaborn
+- gensim
+- torchtext
+- streamlit
+- langchain
+- openai
+- chromadb
+- configparser
+- transformers
+- huggingface_hub
+- sentence_transformers
