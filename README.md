@@ -18,5 +18,5 @@ To get started with the Text Q/A App, follow these steps:
 
 1. Obtain OpenAI API key: Visit [OpenAI API](https://platform.openai.com/account/api-keys) and create a new secret key for authentication purposes.
 
-2. Try out the app through the following link: [Text Q/A App](https://chatwithtext-mohamed.streamlit.app/)
+2. Try out the app through the following link: [Text Q/A App](https://chatwithdocument-mohamed.streamlit.app/)
 
