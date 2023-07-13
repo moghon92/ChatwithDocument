@@ -24,7 +24,7 @@ def generate_response(uploaded_file, openai_api_key, query_text):
         # Create retriever interface
         retriever = db.as_retriever(k=3)
         # Create QA chain
-        qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(openai_api_key=openai_api_key), chain_type='stuff', retriever=retriever)
+        qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(temperature=0.0, openai_api_key=openai_api_key), chain_type='stuff', retriever=retriever)
         return qa.run(query_text)
 
 # Page title
