@@ -6,7 +6,19 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
-from langchain.chains import RetrievalQA
+from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
+from langchain.schema import HumanMessage
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain.callbacks.base import BaseCallbackHandler
+
+
+class StreamHandler(BaseCallbackHandler):
+    def __init__(self, container, initial_text=""):
+        self.container = container
+        self.text=initial_text
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        self.text += token
+        self.container.markdown(self.text)
 
 @st.cache_resource(show_spinner=False)
 def put_files_in_DB(uploaded_files):
@@ -51,7 +63,7 @@ def put_files_in_DB(uploaded_files):
         # Create retriever interface
         retriever = db.as_retriever()
 
-        st.write("Done processing of :", ", ".join([f for f in file_names]))
+        st.info("Done processing of : "+", ".join([f for f in file_names]))
 
         return retriever
 
@@ -59,16 +71,37 @@ def put_files_in_DB(uploaded_files):
 
 def generate_response(retriever, openai_api_key, query_text):
     if retriever is not None:
+        chat_box = st.empty()
+        stream_handler = StreamHandler(chat_box)
         # Create QA chain
-        qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(temperature=0.0, openai_api_key=openai_api_key), chain_type='stuff', retriever=retriever)
-        return qa.run(query_text)
+        #qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(temperature=0.0, openai_api_key=openai_api_key)
+        #                                 , chain_type='stuff'
+        #                                 , retriever=retriever
+        #                                 )
+        qa = RetrievalQA.from_chain_type(
+            llm=ChatOpenAI(temperature=0.0,
+                           streaming=True,
+                           callbacks=[stream_handler],
+                           openai_api_key=openai_api_key),
+            chain_type='stuff',
+            retriever=retriever,
+            return_source_documents=True
+           )
+
+        #resp = chat([HumanMessage(content="Write me a song about sparkling water.")])
+        response = qa({"query": query_text})
+        #answer = response['answer']
+        #sources = response["sources"]
+        #sources= response["source_documents"]
+        return response #answer, sources
+
 
 # Page title
 st.set_page_config(page_title="Chat with Docs", page_icon=":books:")
 st.title('Chat with your Documents :book:')
 
 # read the user's openAI key
-openai_api_key = st.text_input('OpenAI API Key',placeholder='sk-', type='password')
+openai_api_key = st.text_input('OpenAI API Key', placeholder='sk-', type='password')
 # File upload
 uploaded_files = st.file_uploader("Upload your files here"
                                   , type=['pdf', 'docx', 'doc', 'txt']
@@ -95,4 +128,5 @@ if len(uploaded_files) > 0:
                 del openai_api_key
 
     if len(result):
-        st.info(response)
+        with st.expander('sources'):
+            st.write(response)
