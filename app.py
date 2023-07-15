@@ -50,8 +50,8 @@ def put_files_in_DB(uploaded_files):
         # split docs into text
         text_splitter = RecursiveCharacterTextSplitter(
             separators=["\n\n", "\n", "(?<=\. )", " ", ""],
-            chunk_size=1000,
-            chunk_overlap=100
+            chunk_size=528,
+            chunk_overlap=52
         )
 
         texts = text_splitter.split_documents(documents)
@@ -61,7 +61,7 @@ def put_files_in_DB(uploaded_files):
         # Create a vectorstore from documents
         db = FAISS.from_documents(texts, embeddings)
         # Create retriever interface
-        retriever = db.as_retriever()
+        retriever = db.as_retriever(search_kwargs={"k": 6})
 
         st.info("Done processing of : "+", ".join([f for f in file_names]))
 
@@ -73,11 +73,8 @@ def generate_response(retriever, openai_api_key, query_text):
     if retriever is not None:
         chat_box = st.empty()
         stream_handler = StreamHandler(chat_box)
+
         # Create QA chain
-        #qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(temperature=0.0, openai_api_key=openai_api_key)
-        #                                 , chain_type='stuff'
-        #                                 , retriever=retriever
-        #                                 )
         qa = RetrievalQA.from_chain_type(
             llm=ChatOpenAI(temperature=0.0,
                            streaming=True,
@@ -88,12 +85,9 @@ def generate_response(retriever, openai_api_key, query_text):
             return_source_documents=True
            )
 
-        #resp = chat([HumanMessage(content="Write me a song about sparkling water.")])
         response = qa({"query": query_text})
-        #answer = response['answer']
-        #sources = response["sources"]
-        #sources= response["source_documents"]
-        return response #answer, sources
+
+        return response
 
 
 # Page title
