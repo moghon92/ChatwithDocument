@@ -6,3 +6,4 @@ tiktoken==0.4.0
 PyPDF==3.12.1
 docx2txt==0.8
 faiss-cpu==1.7.4
+regex
