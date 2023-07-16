@@ -6,10 +6,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
-from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
-from langchain.schema import HumanMessage
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.callbacks.base import BaseCallbackHandler
+from langchain.chains.conversation.memory import ConversationBufferWindowMemory
+from langchain.chains import ConversationalRetrievalChain
 
 
 class StreamHandler(BaseCallbackHandler):
@@ -21,7 +20,7 @@ class StreamHandler(BaseCallbackHandler):
         self.container.markdown(self.text)
 
 @st.cache_resource(show_spinner=False)
-def put_files_in_DB(uploaded_files):
+def put_files_in_DB(uploaded_files, openai_api_key):
     if uploaded_files is not None:
         documents = []
         file_names = []
@@ -51,7 +50,7 @@ def put_files_in_DB(uploaded_files):
         text_splitter = RecursiveCharacterTextSplitter(
             separators=["\n\n", "\n", "(?<=\. )", " ", ""],
             chunk_size=528,
-            chunk_overlap=52
+            chunk_overlap=28
         )
 
         texts = text_splitter.split_documents(documents)
@@ -60,8 +59,9 @@ def put_files_in_DB(uploaded_files):
         embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
         # Create a vectorstore from documents
         db = FAISS.from_documents(texts, embeddings)
+
         # Create retriever interface
-        retriever = db.as_retriever(search_kwargs={"k": 6})
+        retriever = db.as_retriever(search_kwargs={"k": 3})
 
         st.info("Done processing of : "+", ".join([f for f in file_names]))
 
@@ -71,56 +71,95 @@ def put_files_in_DB(uploaded_files):
 
 def generate_response(retriever, openai_api_key, query_text):
     if retriever is not None:
+        # create empty container for steaming
         chat_box = st.empty()
         stream_handler = StreamHandler(chat_box)
 
-        # Create QA chain
-        qa = RetrievalQA.from_chain_type(
-            llm=ChatOpenAI(temperature=0.0,
-                           streaming=True,
-                           callbacks=[stream_handler],
-                           openai_api_key=openai_api_key),
-            chain_type='stuff',
-            retriever=retriever,
-            return_source_documents=True
-           )
+        # define the model
+        llm = ChatOpenAI(temperature=0.0,
+                         streaming=True,
+                         callbacks=[stream_handler],
+                         openai_api_key=openai_api_key)
 
-        response = qa({"query": query_text})
+        # define the conversational Q/A chain
+        qa = ConversationalRetrievalChain.from_llm(
+            llm=llm,
+            retriever=retriever,
+            return_source_documents=True,
+            memory=st.session_state.buffer_memory,
+            verbose=True
+        )
+
+        # retrieve a response from the chain
+        response = qa({"question": query_text})
+
+        # clean the reponse to display for user
+        res_dict = {"answer": response["answer"], "source_documents": []}
+        for source in response["source_documents"]:
+            page = 'N/A'
+            if "page" in source.metadata.keys():
+                page = source.metadata['page']
+            res_dict["source_documents"].append({
+                "page_content": source.page_content,
+                "metadata": {"source": source.metadata['source'].split('\\')[-1],
+                             "page": page}
+            })
+
+        # store session state in memory
+        st.session_state.requests.append(query_text)
+        st.session_state.responses.append(response)
 
         return response
 
+def main():
+    # intialize session variables
+    if 'responses' not in st.session_state:
+        st.session_state['responses'] = ["How can I assist you?"]
+    if 'requests' not in st.session_state:
+        st.session_state['requests'] = []
+    if 'buffer_memory' not in st.session_state:
+        st.session_state.buffer_memory = \
+            ConversationBufferWindowMemory(k=3,
+                                           memory_key='chat_history',
+                                           output_key='answer',
+                                           return_messages=True)
 
-# Page title
-st.set_page_config(page_title="Chat with Docs", page_icon=":books:")
-st.title('Chat with your Documents :book:')
 
-# read the user's openAI key
-openai_api_key = st.text_input('OpenAI API Key', placeholder='sk-', type='password')
-# File upload
-uploaded_files = st.file_uploader("Upload your files here"
-                                  , type=['pdf', 'docx', 'doc', 'txt']
-                                  , accept_multiple_files=True
-                                  , disabled=not openai_api_key
-                                )
+    # Page title
+    st.set_page_config(page_title="Chat with Docs", page_icon=":books:")
+    st.title('Chat with your Documents :book:')
 
-# Load document if file is uploaded
-if len(uploaded_files) > 0:
-    with st.spinner('Processing...'):
-        retriever = put_files_in_DB(uploaded_files)
+    # read the user's openAI key
+    openai_api_key = st.text_input('OpenAI API Key', placeholder='sk-', type='password')
+    # File upload
+    uploaded_files = st.file_uploader("Upload your files here"
+                                      , type=['pdf', 'docx', 'doc', 'txt']
+                                      , accept_multiple_files=True
+                                      , disabled=not openai_api_key
+                                    )
 
-    # Form input and query
-    result = []
-    with st.form('myform', clear_on_submit=False):
-        # Query text
-        query_text = st.text_input('type your question:', placeholder='Please provide a short summary.')
-        # submit key
-        submitted = st.form_submit_button('Submit')
-        if submitted and openai_api_key.startswith('sk-'):
-            with st.spinner('Calculating...'):
-                response = generate_response(retriever, openai_api_key, query_text)
-                result.append(response)
-                del openai_api_key
+    # Load document if file is uploaded
+    if len(uploaded_files) > 0:
+        with st.spinner('Processing...'):
+            retriever = put_files_in_DB(uploaded_files, openai_api_key)
 
-    if len(result):
-        with st.expander('sources'):
-            st.write(response)
+        # Form input and query
+        result = []
+        with st.form('myform', clear_on_submit=False):
+            # Query text
+            query_text = st.text_input('type your question:', placeholder='Please provide a short summary.')
+            # submit key
+            submitted = st.form_submit_button('Submit')
+            if submitted and openai_api_key.startswith('sk-'):
+                with st.spinner('Calculating...'):
+                    response = generate_response(retriever, openai_api_key, query_text)
+                    result.append(response)
+                    del openai_api_key
+
+        if len(result):
+            with st.expander('sources'):
+                st.write(response)
+
+
+if __name__ == '__main__':
+    main()
