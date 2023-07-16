@@ -109,7 +109,7 @@ def generate_response(retriever, openai_api_key, query_text):
         st.session_state.requests.append(query_text)
         st.session_state.responses.append(response)
 
-        return response
+        return res_dict
 
 def main():
     # intialize session variables
