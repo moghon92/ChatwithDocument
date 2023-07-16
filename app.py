@@ -101,7 +101,7 @@ def generate_response(retriever, openai_api_key, query_text):
                 page = source.metadata['page']
             res_dict["source_documents"].append({
                 "page_content": source.page_content,
-                "metadata": {"source": source.metadata['source'].split('\\')[-1],
+                "metadata": {"source": re.search('[^/\\&\?]+\.\w{3,4}', source.metadata['source']).group(1),
                              "page": page}
             })
 
