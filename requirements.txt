@@ -1,5 +1,6 @@
 langchain==0.0.229
 streamlit==1.24.1
+streamlit-chat==0.1.1
 openai==0.27.8
 tiktoken==0.4.0
 PyPDF==3.12.1
