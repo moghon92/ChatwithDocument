@@ -1,6 +1,7 @@
 import streamlit as st
 import tempfile
 import os
+import regex as re
 from langchain.chat_models import ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
@@ -48,7 +49,7 @@ def put_files_in_DB(uploaded_files, openai_api_key):
         # todo: del temp dir
         # split docs into text
         text_splitter = RecursiveCharacterTextSplitter(
-            separators=["\n\n", "\n", "(?<=\. )", " ", ""],
+            separators=["\n\n", "\n", r"(?<=\. )", " ", ""],
             chunk_size=528,
             chunk_overlap=28
         )
@@ -95,14 +96,14 @@ def generate_response(retriever, openai_api_key, query_text):
 
         # clean the reponse to display for user
         res_dict = {"answer": response["answer"], "source_documents": []}
-        for source in response["source_documents"]:
+        for i, source in enumerate(response["source_documents"]):
             page = 'N/A'
             if "page" in source.metadata.keys():
                 page = source.metadata['page']
             res_dict["source_documents"].append({
-                "page_content": source.page_content,
-                "metadata": {"source": re.search('[^/\\&\?]+\.\w{3,4}', source.metadata['source']).group(1),
-                             "page": page}
+                f"snippet-{i}": source.page_content,
+                "info": {"source": re.search(r'[^/\\&\?]+\.\w{3,4}', source.metadata['source']).group(0),
+                         "page": page}
             })
 
         # store session state in memory
@@ -152,13 +153,13 @@ def main():
             submitted = st.form_submit_button('Submit')
             if submitted and openai_api_key.startswith('sk-'):
                 with st.spinner('Calculating...'):
-                    response = generate_response(retriever, openai_api_key, query_text)
-                    result.append(response)
+                    res_dict = generate_response(retriever, openai_api_key, query_text)
+                    result.append(res_dict['answer'])
                     del openai_api_key
 
         if len(result):
             with st.expander('sources'):
-                st.write(response)
+                st.write(res_dict['source_documents'])
 
 
 if __name__ == '__main__':
