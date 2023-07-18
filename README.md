@@ -1,17 +1,25 @@
+This is a voice-enabled Question and Answer (Q/A) application that allows users to upload documents and utilize a Language Model (LM) for Q/A using Langchain and Streamlit. The app reads the uploaded documents divides them into chunks, embeds each chunk using OpenAI, loads the embeddings into FAISS vector DB. When the user enters a prompt (via voice) it get's converted into text using speech recognition. The model then retrieves the K-NN (K-Nearest Neighbors) text chunks from the vector DB and sends them to the LM for information retrieval. Once data is retrieved, it gets converted back into speech.
+
+The code is hosted on Streamlit and can be viewed in chat.py.
+
+Features
+
+
 # Text Q/A App
 
-This is a text-based Question and Answer (Q/A) application that allows users to upload a text file and utilize a Language Model (LM) for Q/A using Langchain and Streamlit. The app reads the text file, divides it into chunks, embeds each chunk using OpenAI, loads the embeddings into Chromadb vector DB. When the user enters a prompt, the model retrieves the K-NN (K-Nearest Neighbors) text chunks from the vector DB and sends them to the LM for information retrieval. The code is hosted on Streamlit and can be viewed in `app.py`.
+This is a text-based Question and Answer (Q/A) application that allows users to upload documents and utilize a Language Model (LLM) for Q/A using Langchain and Streamlit. The app reads the uploaded documents divides them into chunks, embeds each chunk using OpenAI, loads the embeddings into FAISS vector DB. When the user enters a prompt. The model then retrieves the K-NN (K-Nearest Neighbors) text chunks from the vector DB and sends them to the LM for information retrieval. The code is hosted on Streamlit and can be viewed in `app.py`.
 
 ![App Overview](https://miro.medium.com/v2/resize:fit:1100/format:webp/1*CJzoMxqFrxrDv2UpZt23ZQ.png)
 
 ## Features
 
-- Upload text file: Users can upload a text file to be processed by the app.
-- Q/A with Language Model: Users can enter prompts or questions, and the app will use the LM to provide answers based on the uploaded text file.
-- Chunking and Embedding: The app divides the text into chunks and generates embeddings using OpenAI to facilitate efficient information retrieval.
-- VeectorDB: The app retrieves the K-NN text chunks from the vector DB to improve answer accuracy and relevancy.
-- Streamlit Integration: The app is built using Streamlit, making it interactive and user-friendly.
-
+- ✅ Voice Enabled.
+- ✅ CHAT WITH MULTIPLE DOCUMENTS SIMULTANEOUSLY.
+- ✅ CHAT WITH MULTIPLE DOCUMENT TYPES (PDFS, WORD AND TEXT FILES).
+- ✅ THE APP NOW KEEPS CONV HISTORY IN MEMORY, SO YOU CAN ASK FOLLOW-UP QUESTIONS.
+- ✅ THE APP NOW RETURNS THE SOURCES OF DATA IT USED TO GENERATE THE RESPONSE (INCLUDING DOCUMENT NAME, PAGE NUMBER AND TEXT SNIPPET).
+- ✅ YOU CAN NOW WATCH THE OUTPUT AS IT'S BEING GENERATED, MUCH LIKE THE GPT INTERFACE.
+- 
 ## Getting Started
 
 To get started with the Text Q/A App, follow these steps:
