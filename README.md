@@ -1,10 +1,3 @@
-This is a voice-enabled Question and Answer (Q/A) application that allows users to upload documents and utilize a Language Model (LM) for Q/A using Langchain and Streamlit. The app reads the uploaded documents divides them into chunks, embeds each chunk using OpenAI, loads the embeddings into FAISS vector DB. When the user enters a prompt (via voice) it get's converted into text using speech recognition. The model then retrieves the K-NN (K-Nearest Neighbors) text chunks from the vector DB and sends them to the LM for information retrieval. Once data is retrieved, it gets converted back into speech.
-
-The code is hosted on Streamlit and can be viewed in chat.py.
-
-Features
-
-
 # Text Q/A App
 
 This is a text-based Question and Answer (Q/A) application that allows users to upload documents and utilize a Language Model (LLM) for Q/A using Langchain and Streamlit. The app reads the uploaded documents divides them into chunks, embeds each chunk using OpenAI, loads the embeddings into FAISS vector DB. When the user enters a prompt. The model then retrieves the K-NN (K-Nearest Neighbors) text chunks from the vector DB and sends them to the LM for information retrieval. The code is hosted on Streamlit and can be viewed in `app.py`.
