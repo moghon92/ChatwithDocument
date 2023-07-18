@@ -10,7 +10,7 @@ from langchain.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.chains.conversation.memory import ConversationBufferWindowMemory
 from langchain.chains import ConversationalRetrievalChain
-
+from openai.error import InvalidRequestError, AuthenticationError
 
 class StreamHandler(BaseCallbackHandler):
     def __init__(self, container, initial_text=""):
@@ -139,28 +139,35 @@ def main():
                                       , disabled=not openai_api_key
                                     )
 
-    # Load document if file is uploaded
-    if len(uploaded_files) > 0:
-        with st.spinner('Processing...'):
-            retriever = put_files_in_DB(uploaded_files, openai_api_key)
+    try:
+        # Load document if file is uploaded
+        if len(uploaded_files) > 0:
+            with st.spinner('Processing...'):
+                retriever = put_files_in_DB(uploaded_files, openai_api_key)
 
-        # Form input and query
-        result = []
-        with st.form('myform', clear_on_submit=False):
-            # Query text
-            query_text = st.text_input('type your question:', placeholder='Please provide a short summary.')
-            # submit key
-            submitted = st.form_submit_button('Submit')
-            if submitted and openai_api_key.startswith('sk-'):
-                with st.spinner('Calculating...'):
-                    res_dict = generate_response(retriever, openai_api_key, query_text)
-                    result.append(res_dict['answer'])
-                    del openai_api_key
+            # Form input and query
+            result = []
+            with st.form('myform', clear_on_submit=False):
+                # Query text
+                query_text = st.text_input('type your question:', placeholder='Please provide a short summary.')
+                # submit key
+                submitted = st.form_submit_button('Submit')
+                if submitted and openai_api_key.startswith('sk-'):
+                    with st.spinner('Calculating...'):
+                        res_dict = generate_response(retriever, openai_api_key, query_text)
+                        result.append(res_dict['answer'])
+                        del openai_api_key
 
-        if len(result):
-            with st.expander('sources'):
-                st.write(res_dict['source_documents'])
+            if len(result):
+                with st.expander('sources'):
+                    st.write(res_dict['source_documents'])
 
+    except AuthenticationError:
+        st.info('The OpenAI API key you entered is incorrect.\nYou can find your API key at https://platform.openai.com/account/api-keys')
+    except InvalidRequestError:
+        st.info('The recording is corrupted, please try again')
+    except:
+        st.info('Error, please refresh an try again')
 
 if __name__ == '__main__':
     main()
