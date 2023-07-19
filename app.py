@@ -111,6 +111,7 @@ def generate_response(retriever, openai_api_key, query_text):
         st.session_state.responses.append(response)
 
         return res_dict
+    return None
 
 def main():
     # intialize session variables
@@ -155,7 +156,8 @@ def main():
                 if submitted and openai_api_key.startswith('sk-'):
                     with st.spinner('Calculating...'):
                         res_dict = generate_response(retriever, openai_api_key, query_text)
-                        result.append(res_dict['answer'])
+                        if res_dict is not None:
+                            result.append(res_dict['answer'])
                         del openai_api_key
 
             if len(result):
